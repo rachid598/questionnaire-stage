@@ -1,0 +1,14 @@
+services:
+  questionnaire:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DB_PATH=/data/responses.sqlite3
+      - OPENS_AT=${OPENS_AT:-}
+      - CLOSES_AT=${CLOSES_AT:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Définir un mot de passe dans .env}
+      - SECRET_KEY=${SECRET_KEY:?Définir une clé dans .env}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/data
