@@ -1,0 +1,49 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Résultats du questionnaire de stage</title><style>
+:root{--ink:#182a40;--muted:#718097;--teal:#0f9689;--orange:#d27a51;--line:#dfe8f0}*{box-sizing:border-box}body{margin:0;font-family:system-ui,'DM Sans',sans-serif;background:#f4f8f8;color:var(--ink)}main{max-width:1000px;margin:0 auto;padding:28px 16px 60px}h1{margin:0 0 6px;font-size:28px}p.sub{color:var(--muted);margin:0 0 20px}
+#drop{display:block;border:2px dashed #9ccfc8;background:#fff;border-radius:18px;padding:36px;text-align:center;cursor:pointer}#drop.over{background:#eef9f6}#drop b{color:var(--teal)}
+.sec{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin:30px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:#fff;border:1px solid #e6eff0;border-radius:18px;padding:18px;break-inside:avoid}.card h3{font-size:15px;line-height:1.4;margin:0 0 12px;min-height:42px}
+.card svg{display:block;margin:0 auto 12px;width:150px;height:150px}.leg{list-style:none;margin:0;padding:0;font-size:14px}.leg li{display:flex;align-items:center;gap:8px;padding:3px 0}.dot{width:12px;height:12px;border-radius:4px;flex:none}.leg span.n{margin-left:auto;font-weight:700;white-space:nowrap}
+.com li{background:#fafcfd;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px;list-style:none}ul.com{padding:0;margin:0}
+.tot{font-size:15px;margin:18px 0 0;font-weight:700}.btn{margin-top:14px;border:0;background:#0d807b;color:#fff;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+@media print{#drop,.btn{display:none}body{background:#fff}}
+</style></head><body><main>
+<h1>Résultats du questionnaire de stage</h1><p class="sub">Dépose ici le fichier CSV exporté de Supabase. Tout reste dans ton navigateur : rien n'est envoyé nulle part.</p>
+<label id="drop"><input id="file" type="file" accept=".csv,text/csv" hidden><b>Clique ou glisse le fichier CSV ici</b></label>
+<div id="out"></div>
+<script>
+const PAL=['#0f9689','#d27a51','#5b7fd1','#c9a227','#8a6fd1'];
+const YN=['Oui','Non'];
+const SECTIONS=[
+['Inscription — « Je me suis inscrit au stage : »',[
+ ['inscription_parents','À la demande de mes parents',YN],
+ ['inscription_soi','De mon propre chef avec l’accord de mes parents',YN],
+ ['inscription_professeurs','À la demande de mes professeurs avec l’accord de mes parents',YN]]],
+['Bilan du stage',[
+ ['presence','1) Êtes-vous venu tous les jours ?',YN],
+ ['absence_raison','Si non, quelle est la raison ?',['Rendez-vous médical','Pas motivé(e)','Raison personnelle']],
+ ['ambiance','2) Comment vous êtes-vous senti durant le stage ?',['À l’aise, l’ambiance était agréable','Pas à l’aise, j’avais du mal avec le groupe']],
+ ['activites','3) Avez-vous aimé les activités proposées ?',YN],
+ ['progres','4) Sentez-vous que vous avez progressé sur certaines notions ?',YN],
+ ['renouveler','5) Devons-nous proposer à nouveau ce genre de stage durant les vacances ?',YN],
+ ['revenir','6) Viendrez-vous si nous le proposons aux prochaines vacances ?',YN],
+ ['modifier','7) Devons-nous modifier quelque chose à l’organisation ?',YN]]]];
+function parseCSV(t){const rows=[];let r=[],c='',q=false;t=t.replace(/^﻿/,'');for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==','){r.push(c);c=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;r.push(c);c='';if(r.length>1||r[0]!=='')rows.push(r);r=[]}else c+=ch}if(c!==''||r.length){r.push(c);rows.push(r)}
+ const h=rows.shift();return rows.map(x=>Object.fromEntries(h.map((k,i)=>[k.trim(),(x[i]||'').trim()])))}
+const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function pie(counts){const tot=counts.reduce((a,b)=>a+b,0);if(!tot)return'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#eef3f4"/></svg>';
+ const nz=counts.filter(c=>c>0).length;if(nz==1){const i=counts.findIndex(c=>c>0);return`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="${PAL[i]}"/></svg>`}
+ let a=-Math.PI/2,s='<svg viewBox="0 0 100 100">';counts.forEach((c,i)=>{if(!c)return;const b=a+c/tot*2*Math.PI,x1=50+48*Math.cos(a),y1=50+48*Math.sin(a),x2=50+48*Math.cos(b),y2=50+48*Math.sin(b);s+=`<path d="M50 50L${x1} ${y1}A48 48 0 ${c/tot>.5?1:0} 1 ${x2} ${y2}Z" fill="${PAL[i]}" stroke="#fff" stroke-width="1.5"/>`;a=b});return s+'</svg>'}
+function render(rows){let h=`<p class="tot">${rows.length} réponse${rows.length>1?'s':''}</p><button class="btn" onclick="print()">Imprimer / PDF</button>`;
+ for(const [title,qs] of SECTIONS){h+=`<div class="sec">${title}</div><div class="grid">`;
+  for(const [k,label,opts] of qs){const vals=rows.map(r=>r[k]).filter(Boolean);const counts=opts.map(o=>vals.filter(v=>v===o).length);const tot=vals.length;
+   h+=`<div class="card"><h3>${esc(label)}</h3>${pie(counts)}<ul class="leg">`+opts.map((o,i)=>`<li><i class="dot" style="background:${PAL[i]}"></i>${esc(o)}<span class="n">${counts[i]}${tot?` · ${Math.round(counts[i]/tot*100)} %`:''}</span></li>`).join('')+`</ul></div>`}
+  h+='</div>'}
+ const com=rows.map(r=>r.expliquer).filter(Boolean);
+ h+=`<div class="sec">Si oui, expliquez — commentaires (${com.length})</div><ul class="com">`+(com.length?com.map(c=>`<li>${esc(c)}</li>`).join(''):'<li style="color:#718097">Aucun commentaire.</li>')+'</ul>';
+ document.getElementById('out').innerHTML=h}
+function load(f){if(!f)return;f.text().then(t=>{const rows=parseCSV(t);if(!rows.length||!('presence' in rows[0])){document.getElementById('out').innerHTML='<p class="tot">Ce fichier ne ressemble pas à l’export des réponses.</p>';return}render(rows)})}
+const d=document.getElementById('drop');document.getElementById('file').onchange=e=>load(e.target.files[0]);
+['dragover','dragenter'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over')}));['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over')}));d.addEventListener('drop',e=>load(e.dataTransfer.files[0]));
+</script></main></body></html>
